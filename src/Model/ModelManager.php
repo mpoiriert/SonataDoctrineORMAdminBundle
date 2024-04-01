@@ -34,7 +34,9 @@ use Sonata\AdminBundle\Model\ModelManagerInterface;
 use Sonata\AdminBundle\Model\ProxyResolverInterface;
 use Sonata\DoctrineORMAdminBundle\Datagrid\ProxyQuery;
 use Sonata\DoctrineORMAdminBundle\Datagrid\ProxyQueryInterface;
+use Sonata\DoctrineORMAdminBundle\Event\PreObjectDeleteBatchEvent;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @phpstan-template T of object
@@ -55,6 +57,7 @@ final class ModelManager implements ModelManagerInterface, LockInterface, ProxyR
     public function __construct(
         private ManagerRegistry $registry,
         private PropertyAccessorInterface $propertyAccessor,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -374,6 +377,12 @@ final class ModelManager implements ModelManagerInterface, LockInterface, ProxyR
 
         try {
             foreach ($query->getDoctrineQuery()->toIterable() as $object) {
+                $event = $this->eventDispatcher->dispatch(new PreObjectDeleteBatchEvent($class, $object));
+
+                if (!$event->shouldDelete()) {
+                    continue;
+                }
+
                 $entityManager->remove($object);
 
                 if (0 === (++$i % $batchSize)) {

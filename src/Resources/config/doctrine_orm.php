@@ -40,6 +40,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             ->args([
                 service('doctrine'),
                 service('property_accessor'),
+                service('event_dispatcher'),
             ])
 
         ->set('sonata.admin.builder.orm_form', FormContractor::class)
